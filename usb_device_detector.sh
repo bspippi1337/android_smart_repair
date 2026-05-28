@@ -28,7 +28,7 @@ DETECTED_SERIAL=""
 DETECTED_MANUFACTURER=""
 DETECTED_PRODUCT=""
 DEVICE_BUS=""
-DEVICE_PATH=""
+DEVICE_NUM=""
 
 # USB Vendor/Product ID Database for bootloader modes
 declare -A BOOTLOADER_MODES=(
@@ -112,15 +112,16 @@ detect_usb_linux() {
         return 1
     fi
     
-    log_info "Running: lsusb -v"
+    log_info "Running: lsusb"
     local usb_output
-    usb_output=$(lsusb -v 2>/dev/null || true)
+    usb_output=$(lsusb 2>/dev/null || true)
     
     # Parse lsusb output to find Android/Motorola/Xiaomi/MediaTek devices
+    # Format: Bus 001 Device 005: ID 0e8d:2000 MediaTek Inc.
     while IFS= read -r line; do
-        if [[ $line =~ "Bus "([0-9]+)" Device "([0-9]+)": ID "([0-9a-f]+)":"([0-9a-f]+)" ]]; then
+        if [[ $line =~ Bus\ ([0-9]+)\ Device\ ([0-9]+):\ ID\ ([0-9a-f]+):([0-9a-f]+) ]]; then
             local bus="${BASH_REMATCH[1]}"
-            local device="${BASH_REMATCH[2]}"
+            local devnum="${BASH_REMATCH[2]}"
             local vendor_id="${BASH_REMATCH[3]}"
             local product_id="${BASH_REMATCH[4]}"
             local full_id="$vendor_id:$product_id"
@@ -131,9 +132,9 @@ detect_usb_linux() {
                 DETECTED_VENDOR_ID="$vendor_id"
                 DETECTED_PRODUCT_ID="$product_id"
                 DEVICE_BUS="$bus"
-                DEVICE_PATH="$device"
+                DEVICE_NUM="$devnum"
                 
-                log_success "Found device in ${BOOTLOADER_MODES[$full_id]} mode (USB $bus:$device)"
+                log_success "Found device in ${BOOTLOADER_MODES[$full_id]} mode (USB $bus:$devnum)"
                 log_info "Vendor ID: $vendor_id | Product ID: $product_id"
                 return 0
             fi
@@ -212,7 +213,7 @@ probe_fastboot() {
     local fb_output
     fb_output=$(fastboot devices 2>&1 || true)
     
-    if [[ -n "$fb_output" && "$fb_output" != "* daemon not running; starting now at tcp:5037 *" ]]; then
+    if [[ -n "$fb_output" && "$fb_output" != *"no permissions"* && "$fb_output" != *"not found"* ]]; then
         log_success "✓ Fastboot protocol active"
         DETECTED_MODE="fastboot"
         echo "$fb_output" | tee -a "$LOG_FILE"
@@ -240,7 +241,7 @@ probe_adb() {
     local adb_output
     adb_output=$(adb devices 2>&1 || true)
     
-    if echo "$adb_output" | grep -E "^[a-zA-Z0-9]+" > /dev/null; then
+    if echo "$adb_output" | grep -qE "^[a-zA-Z0-9].*device$"; then
         log_success "✓ ADB protocol active"
         DETECTED_MODE="adb"
         echo "$adb_output" | tee -a "$LOG_FILE"
@@ -286,11 +287,11 @@ probe_fdl() {
     
     if command -v lsusb &> /dev/null; then
         local fdl_devices
-        fdl_devices=$(lsusb | grep -i "mediatek\|0e8d" || true)
+        fdl_devices=$(lsusb | grep -iE "mediatek|0e8d" || true)
         
         if [[ -n "$fdl_devices" ]]; then
             # Check for FDL-specific USB IDs
-            if echo "$fdl_devices" | grep -q "0e8d:0000\|0e8d:2000"; then
+            if echo "$fdl_devices" | grep -qE "0e8d:0000|0e8d:2000"; then
                 log_success "✓ FDL/BROM protocol detected"
                 DETECTED_MODE="fdl"
                 echo "$fdl_devices" | tee -a "$LOG_FILE"
@@ -311,11 +312,11 @@ probe_edl() {
     
     if command -v lsusb &> /dev/null; then
         local edl_devices
-        edl_devices=$(lsusb | grep -i "qualcomm\|05c6" || true)
+        edl_devices=$(lsusb | grep -iE "qualcomm|05c6" || true)
         
         if [[ -n "$edl_devices" ]]; then
             # Check for EDL-specific USB IDs
-            if echo "$edl_devices" | grep -q "05c6:900e\|05c6:9008\|05c6:9048"; then
+            if echo "$edl_devices" | grep -qE "05c6:900e|05c6:9008|05c6:9048"; then
                 log_success "✓ EDL/Firehose protocol detected"
                 DETECTED_MODE="edl"
                 echo "$edl_devices" | tee -a "$LOG_FILE"
