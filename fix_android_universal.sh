@@ -3,7 +3,8 @@
 ###############################################################################
 # Android Smart Repair - Universal Script
 # Automatic fix for bricked/problematic Android devices
-# Supports: Motorola, Xiaomi, MediaTek, Qualcomm, Samsung, and other Android devices
+# Supports: Motorola, Xiaomi, MediaTek, Qualcomm, Samsung, Sony, OnePlus,
+#           Google, HTC, NVIDIA, Huawei, OPPO, Vivo, Realme, and more
 ###############################################################################
 
 set -e
@@ -36,6 +37,11 @@ declare -A USB_VENDORS=(
     ["0bb4"]="HTC"
     ["0955"]="NVIDIA"
     ["2717"]="Xiaomi"
+    ["12d1"]="Huawei"
+    ["2b4c"]="OnePlus"
+    ["22d9"]="OPPO"
+    ["0e8e"]="Vivo"
+    ["1949"]="Realme"
     ["091e"]="Garmin"
     ["0451"]="Texas Instruments"
     ["1d6b"]="Linux Foundation"
@@ -164,14 +170,6 @@ detect_device_type() {
         if [[ "$DEVICE_MODEL_LOWER" =~ "mi" || "$DEVICE_MODEL_LOWER" =~ "redmi" ]]; then
             log_info "Device: Xiaomi Mi/Redmi Series"
         fi
-    elif [[ "$DEVICE_CHIPSET_LOWER" =~ "mediatek" || "$DEVICE_CHIPSET_LOWER" =~ "mt" ]]; then
-        DEVICE_TYPE="mediatek"
-        log_success "✓ MediaTek device detected"
-        log_info "Optimizations: MediaTek chipset-specific fixes enabled"
-    elif [[ "$DEVICE_CHIPSET_LOWER" =~ "snapdragon" || "$DEVICE_CHIPSET_LOWER" =~ "msm" || "$DEVICE_CHIPSET_LOWER" =~ "sdm" ]]; then
-        DEVICE_TYPE="qualcomm"
-        log_success "✓ Qualcomm Snapdragon device detected"
-        log_info "Optimizations: Qualcomm-specific fixes enabled"
     elif [[ "$DEVICE_BRAND_LOWER" == "samsung" || "$DEVICE_MANUFACTURER_LOWER" == "samsung" ]]; then
         DEVICE_TYPE="samsung"
         log_success "✓ Samsung device detected"
@@ -180,14 +178,46 @@ detect_device_type() {
         DEVICE_TYPE="sony"
         log_success "✓ Sony device detected"
         log_info "Optimizations: Sony-specific fixes enabled"
-    elif [[ "$DEVICE_BRAND_LOWER" == "google" || "$DEVICE_BRAND_LOWER" == "pixel" ]]; then
-        DEVICE_TYPE="google"
-        log_success "✓ Google Pixel device detected"
-        log_info "Optimizations: Google Android-specific fixes enabled"
     elif [[ "$DEVICE_BRAND_LOWER" == "oneplus" ]]; then
         DEVICE_TYPE="oneplus"
         log_success "✓ OnePlus device detected"
         log_info "Optimizations: OnePlus OxygenOS-specific fixes enabled"
+    elif [[ "$DEVICE_BRAND_LOWER" == "google" || "$DEVICE_BRAND_LOWER" == "pixel" ]]; then
+        DEVICE_TYPE="google"
+        log_success "✓ Google Pixel device detected"
+        log_info "Optimizations: Google Android-specific fixes enabled"
+    elif [[ "$DEVICE_BRAND_LOWER" == "htc" || "$DEVICE_MANUFACTURER_LOWER" == "htc" ]]; then
+        DEVICE_TYPE="htc"
+        log_success "✓ HTC device detected"
+        log_info "Optimizations: HTC Sense-specific fixes enabled"
+    elif [[ "$DEVICE_BRAND_LOWER" == "nvidia" || "$DEVICE_MANUFACTURER_LOWER" == "nvidia" ]]; then
+        DEVICE_TYPE="nvidia"
+        log_success "✓ NVIDIA Shield device detected"
+        log_info "Optimizations: NVIDIA-specific fixes enabled"
+    elif [[ "$DEVICE_BRAND_LOWER" == "huawei" || "$DEVICE_MANUFACTURER_LOWER" == "huawei" ]]; then
+        DEVICE_TYPE="huawei"
+        log_success "✓ Huawei device detected"
+        log_info "Optimizations: Huawei EMUI/HarmonyOS-specific fixes enabled"
+    elif [[ "$DEVICE_BRAND_LOWER" == "oppo" || "$DEVICE_MANUFACTURER_LOWER" == "oppo" ]]; then
+        DEVICE_TYPE="oppo"
+        log_success "✓ OPPO device detected"
+        log_info "Optimizations: OPPO ColorOS-specific fixes enabled"
+    elif [[ "$DEVICE_BRAND_LOWER" == "vivo" || "$DEVICE_MANUFACTURER_LOWER" == "vivo" ]]; then
+        DEVICE_TYPE="vivo"
+        log_success "✓ Vivo device detected"
+        log_info "Optimizations: Vivo Funtouch OS-specific fixes enabled"
+    elif [[ "$DEVICE_BRAND_LOWER" == "realme" || "$DEVICE_MANUFACTURER_LOWER" == "realme" ]]; then
+        DEVICE_TYPE="realme"
+        log_success "✓ Realme device detected"
+        log_info "Optimizations: Realme Realme UI-specific fixes enabled"
+    elif [[ "$DEVICE_CHIPSET_LOWER" =~ "mediatek" || "$DEVICE_CHIPSET_LOWER" =~ "mt" ]]; then
+        DEVICE_TYPE="mediatek"
+        log_success "✓ MediaTek device detected"
+        log_info "Optimizations: MediaTek chipset-specific fixes enabled"
+    elif [[ "$DEVICE_CHIPSET_LOWER" =~ "snapdragon" || "$DEVICE_CHIPSET_LOWER" =~ "msm" || "$DEVICE_CHIPSET_LOWER" =~ "sdm" ]]; then
+        DEVICE_TYPE="qualcomm"
+        log_success "✓ Qualcomm Snapdragon device detected"
+        log_info "Optimizations: Qualcomm-specific fixes enabled"
     else
         DEVICE_TYPE="generic"
         log_warning "⚠ Generic Android device detected"
@@ -217,10 +247,32 @@ clear_caches() {
             log_step "Clearing Samsung OneUI-specific caches..."
             adb shell rm -rf /data/log/* 2>/dev/null || true
             adb shell rm -rf /data/anr/* 2>/dev/null || true
+            adb shell rm -rf /data/system_ce/cache/* 2>/dev/null || true
             ;;
         oneplus)
             log_step "Clearing OnePlus OxygenOS-specific caches..."
             adb shell rm -rf /data/op_cache/* 2>/dev/null || true
+            adb shell rm -rf /data/oppo/log/* 2>/dev/null || true
+            ;;
+        huawei)
+            log_step "Clearing Huawei EMUI-specific caches..."
+            adb shell rm -rf /data/huawei/cache/* 2>/dev/null || true
+            adb shell rm -rf /data/hw_log/* 2>/dev/null || true
+            ;;
+        oppo)
+            log_step "Clearing OPPO ColorOS-specific caches..."
+            adb shell rm -rf /data/oppo/cache/* 2>/dev/null || true
+            adb shell rm -rf /data/oppo/log/* 2>/dev/null || true
+            ;;
+        vivo)
+            log_step "Clearing Vivo Funtouch OS-specific caches..."
+            adb shell rm -rf /data/vivo/cache/* 2>/dev/null || true
+            adb shell rm -rf /data/vivo/log/* 2>/dev/null || true
+            ;;
+        realme)
+            log_step "Clearing Realme UI-specific caches..."
+            adb shell rm -rf /data/realme/cache/* 2>/dev/null || true
+            adb shell rm -rf /data/realme/log/* 2>/dev/null || true
             ;;
         mediatek|qualcomm)
             log_step "Clearing chipset-specific cache directories..."
@@ -254,6 +306,7 @@ stop_problem_services() {
             services+=(
                 "com.samsung.android.app.launcher"
                 "com.samsung.systemui"
+                "com.samsung.android.app.settings"
             )
             ;;
         motorola)
@@ -265,11 +318,37 @@ stop_problem_services() {
         oneplus)
             services+=(
                 "com.oneplus.launcher"
+                "com.oneplus.android.shell"
             )
             ;;
         google)
             services+=(
                 "com.google.android.launcher"
+                "com.google.android.systemui"
+            )
+            ;;
+        huawei)
+            services+=(
+                "com.huawei.android.launcher"
+                "com.huawei.systemui"
+            )
+            ;;
+        oppo)
+            services+=(
+                "com.oppo.launcher"
+                "com.oppo.systemui"
+            )
+            ;;
+        vivo)
+            services+=(
+                "com.vivo.launcher"
+                "com.vivo.systemui"
+            )
+            ;;
+        realme)
+            services+=(
+                "com.realme.launcher"
+                "com.realme.systemui"
             )
             ;;
     esac
@@ -301,6 +380,22 @@ optimize_storage() {
         samsung)
             log_step "Optimizing Samsung storage..."
             adb shell "rm -rf /data/log/* 2>/dev/null; rm -rf /data/dropbox/* 2>/dev/null" || true
+            ;;
+        huawei)
+            log_step "Optimizing Huawei storage..."
+            adb shell "rm -rf /data/hw_log/* 2>/dev/null; rm -rf /data/huawei/log/* 2>/dev/null" || true
+            ;;
+        oppo)
+            log_step "Optimizing OPPO storage..."
+            adb shell "rm -rf /data/oppo/log/* 2>/dev/null; rm -rf /data/oppo/tmp/* 2>/dev/null" || true
+            ;;
+        vivo)
+            log_step "Optimizing Vivo storage..."
+            adb shell "rm -rf /data/vivo/log/* 2>/dev/null; rm -rf /data/vivo/tmp/* 2>/dev/null" || true
+            ;;
+        realme)
+            log_step "Optimizing Realme storage..."
+            adb shell "rm -rf /data/realme/log/* 2>/dev/null; rm -rf /data/realme/tmp/* 2>/dev/null" || true
             ;;
         mediatek|qualcomm)
             log_step "Optimizing chipset-specific storage..."
@@ -457,7 +552,7 @@ show_menu() {
 # Show help
 show_help() {
     cat << EOF
-Android Smart Repair - Universal Device Support
+Android Smart Repair - Universal Device Support v1.3
 
 USAGE:
     fix_android_universal.sh [OPTION]
@@ -471,6 +566,10 @@ SUPPORTED BRANDS & DEVICES:
     ✓ OnePlus
     ✓ HTC
     ✓ NVIDIA Shield
+    ✓ Huawei (EMUI/HarmonyOS)
+    ✓ OPPO (ColorOS)
+    ✓ Vivo (Funtouch OS)
+    ✓ Realme (Realme UI)
     ✓ MediaTek chipset devices
     ✓ Qualcomm Snapdragon devices
     ✓ Other Android devices with ADB support
@@ -501,6 +600,7 @@ FEATURES:
     • Comprehensive logging
     • Color-coded output
     • Error handling & recovery
+    • USB Vendor ID recognition
 
 For detailed documentation, see USAGE.md
 
@@ -509,7 +609,7 @@ EOF
 
 # Main function
 main() {
-    print_header "Android Smart Repair - Universal v1.2"
+    print_header "Android Smart Repair - Universal v1.3"
     log_info "Starting repair process..."
     log_info "Logging to: $LOG_FILE"
     
