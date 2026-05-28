@@ -7,7 +7,9 @@
 #           Google, HTC, NVIDIA, Huawei, OPPO, Vivo, Realme, and more
 ###############################################################################
 
-set -e
+set +e
+set -u
+set -o pipefail
 
 # Color codes
 RED='\033[0;31m'
@@ -101,30 +103,94 @@ check_prerequisites() {
 # Check device connection
 check_device_connection() {
     print_header "Checking Device Connection"
-    
-    log_info "Starting ADB daemon..."
-    adb start-server 2>&1 | tee -a "$LOG_FILE"
-    
-    sleep 2
-    
-    log_info "Waiting for device..."
-    local count=0
-    while ! adb devices | grep -E "^[a-zA-Z0-9]+" > /dev/null 2>&1; do
-        if [ $count -ge 30 ]; then
-            log_error "Device not detected after 30 seconds"
-            log_info "Troubleshooting:"
-            log_info "  1. Enable USB Debugging: Settings → Developer Options"
-            log_info "  2. Accept the ADB connection prompt on your device"
-            log_info "  3. Try a different USB port or cable"
-            exit 1
+
+    log_info "Starting resilient transport monitor..."
+
+    adb kill-server >/dev/null 2>&1 || true
+    adb start-server >/dev/null 2>&1 || true
+
+    local state=""
+    local last_state=""
+    local stable=0
+    local reconnects=0
+
+    while true; do
+
+        adb_serial="$(adb devices 2>/dev/null | awk 'NR>1 && $2=="device" {print $1}' | head -n1)"
+        adb_unauth="$(adb devices 2>/dev/null | awk 'NR>1 && $2=="unauthorized" {print $1}' | head -n1)"
+        adb_offline="$(adb devices 2>/dev/null | awk 'NR>1 && $2=="offline" {print $1}' | head -n1)"
+
+        fastboot_serial="$(timeout 2 fastboot devices 2>/dev/null | awk 'NF {print $1}' | head -n1)"
+
+        if [[ -n "$adb_serial" ]]; then
+            state="adb"
+
+        elif [[ -n "$adb_unauth" ]]; then
+            state="adb_unauthorized"
+
+        elif [[ -n "$adb_offline" ]]; then
+            state="adb_offline"
+
+        elif [[ -n "$fastboot_serial" ]]; then
+            state="fastboot"
+
+        else
+            state="disconnected"
         fi
-        echo -n "." | tee -a "$LOG_FILE"
+
+        if [[ "$state" == "$last_state" ]]; then
+            ((stable++))
+        else
+            stable=0
+            ((reconnects++))
+            log_info "TRANSPORT: $last_state -> $state"
+            last_state="$state"
+        fi
+
+        case "$state" in
+
+            adb)
+                if [[ $stable -ge 2 ]]; then
+                    log_success "ADB device detected: $adb_serial"
+                    export DEVICE_TRANSPORT="adb"
+                    return 0
+                fi
+                ;;
+
+            fastboot)
+                if [[ $stable -ge 2 ]]; then
+                    log_success "FASTBOOT device detected: $fastboot_serial"
+                    export DEVICE_TRANSPORT="fastboot"
+                    return 0
+                fi
+                ;;
+
+            adb_unauthorized)
+                log_warning "ADB unauthorized. Waiting for approval on device..."
+                adb kill-server >/dev/null 2>&1 || true
+                adb start-server >/dev/null 2>&1 || true
+                ;;
+
+            adb_offline)
+                log_warning "ADB offline. Restarting daemon..."
+                adb kill-server >/dev/null 2>&1 || true
+                adb start-server >/dev/null 2>&1 || true
+                ;;
+
+            disconnected)
+                log_warning "Waiting for device reconnect..."
+                ;;
+
+        esac
+
+        if [[ $reconnects -gt 50 ]]; then
+            log_warning "USB reconnect storm detected. Cooling down..."
+            sleep 10
+            reconnects=0
+        fi
+
         sleep 1
-        ((count++))
     done
-    echo "" | tee -a "$LOG_FILE"
-    
-    log_success "Device detected!"
 }
 
 # Get device info and detect manufacturer
