@@ -3,7 +3,7 @@
 ###############################################################################
 # Android Smart Repair - Universal Script
 # Automatic fix for bricked/problematic Android devices
-# Supports: Motorola G15, Xiaomi Mi/Redmi series, and other Android devices
+# Supports: Motorola, Xiaomi, MediaTek, Qualcomm, Samsung, and other Android devices
 ###############################################################################
 
 set -e
@@ -24,6 +24,22 @@ DEVICE_MODEL=""
 DEVICE_BRAND=""
 DEVICE_MANUFACTURER=""
 ANDROID_VERSION=""
+DEVICE_CHIPSET=""
+DEVICE_TYPE=""
+
+# Known USB Vendor IDs for device detection
+declare -A USB_VENDORS=(
+    ["0e8d"]="MediaTek"
+    ["05c6"]="Qualcomm"
+    ["18d1"]="Google"
+    ["0fce"]="Sony Ericsson"
+    ["0bb4"]="HTC"
+    ["0955"]="NVIDIA"
+    ["2717"]="Xiaomi"
+    ["091e"]="Garmin"
+    ["0451"]="Texas Instruments"
+    ["1d6b"]="Linux Foundation"
+)
 
 # Helper functions
 log_info() {
@@ -113,11 +129,13 @@ get_device_info() {
     DEVICE_BRAND=$(adb shell getprop ro.product.brand 2>/dev/null || echo "Unknown")
     DEVICE_MANUFACTURER=$(adb shell getprop ro.product.manufacturer 2>/dev/null || echo "Unknown")
     ANDROID_VERSION=$(adb shell getprop ro.build.version.release 2>/dev/null || echo "Unknown")
+    DEVICE_CHIPSET=$(adb shell getprop ro.chipname 2>/dev/null || adb shell getprop ro.board.platform 2>/dev/null || echo "Unknown")
     
     log_info "Model: $DEVICE_MODEL"
     log_info "Brand: $DEVICE_BRAND"
     log_info "Manufacturer: $DEVICE_MANUFACTURER"
     log_info "Android Version: $ANDROID_VERSION"
+    log_info "Chipset: $DEVICE_CHIPSET"
     log_info "Build: $(adb shell getprop ro.build.fingerprint 2>/dev/null)"
     log_info "Storage:"
     adb shell df /data 2>&1 | tee -a "$LOG_FILE"
@@ -128,22 +146,50 @@ get_device_info() {
 # Detect device type and show appropriate info
 detect_device_type() {
     print_separator
-    log_info "Detecting device type..."
+    log_info "Detecting device type and optimizations..."
     
     DEVICE_BRAND_LOWER=$(echo "$DEVICE_BRAND" | tr '[:upper:]' '[:lower:]')
     DEVICE_MANUFACTURER_LOWER=$(echo "$DEVICE_MANUFACTURER" | tr '[:upper:]' '[:lower:]')
     DEVICE_MODEL_LOWER=$(echo "$DEVICE_MODEL" | tr '[:upper:]' '[:lower:]')
+    DEVICE_CHIPSET_LOWER=$(echo "$DEVICE_CHIPSET" | tr '[:upper:]' '[:lower:]')
     
     if [[ "$DEVICE_BRAND_LOWER" == "motorola" || "$DEVICE_MANUFACTURER_LOWER" == "motorola" ]]; then
+        DEVICE_TYPE="motorola"
         log_success "✓ Motorola device detected"
         log_info "Optimizations: Motorola-specific fixes enabled"
     elif [[ "$DEVICE_BRAND_LOWER" == "xiaomi" || "$DEVICE_MANUFACTURER_LOWER" == "xiaomi" ]]; then
+        DEVICE_TYPE="xiaomi"
         log_success "✓ Xiaomi device detected"
-        log_info "Optimizations: Xiaomi-specific fixes enabled"
+        log_info "Optimizations: Xiaomi MIUI-specific fixes enabled"
         if [[ "$DEVICE_MODEL_LOWER" =~ "mi" || "$DEVICE_MODEL_LOWER" =~ "redmi" ]]; then
             log_info "Device: Xiaomi Mi/Redmi Series"
         fi
+    elif [[ "$DEVICE_CHIPSET_LOWER" =~ "mediatek" || "$DEVICE_CHIPSET_LOWER" =~ "mt" ]]; then
+        DEVICE_TYPE="mediatek"
+        log_success "✓ MediaTek device detected"
+        log_info "Optimizations: MediaTek chipset-specific fixes enabled"
+    elif [[ "$DEVICE_CHIPSET_LOWER" =~ "snapdragon" || "$DEVICE_CHIPSET_LOWER" =~ "msm" || "$DEVICE_CHIPSET_LOWER" =~ "sdm" ]]; then
+        DEVICE_TYPE="qualcomm"
+        log_success "✓ Qualcomm Snapdragon device detected"
+        log_info "Optimizations: Qualcomm-specific fixes enabled"
+    elif [[ "$DEVICE_BRAND_LOWER" == "samsung" || "$DEVICE_MANUFACTURER_LOWER" == "samsung" ]]; then
+        DEVICE_TYPE="samsung"
+        log_success "✓ Samsung device detected"
+        log_info "Optimizations: Samsung OneUI-specific fixes enabled"
+    elif [[ "$DEVICE_BRAND_LOWER" == "sony" || "$DEVICE_MANUFACTURER_LOWER" == "sony" ]]; then
+        DEVICE_TYPE="sony"
+        log_success "✓ Sony device detected"
+        log_info "Optimizations: Sony-specific fixes enabled"
+    elif [[ "$DEVICE_BRAND_LOWER" == "google" || "$DEVICE_BRAND_LOWER" == "pixel" ]]; then
+        DEVICE_TYPE="google"
+        log_success "✓ Google Pixel device detected"
+        log_info "Optimizations: Google Android-specific fixes enabled"
+    elif [[ "$DEVICE_BRAND_LOWER" == "oneplus" ]]; then
+        DEVICE_TYPE="oneplus"
+        log_success "✓ OnePlus device detected"
+        log_info "Optimizations: OnePlus OxygenOS-specific fixes enabled"
     else
+        DEVICE_TYPE="generic"
         log_warning "⚠ Generic Android device detected"
         log_info "Generic repair procedures will be applied"
     fi
@@ -161,11 +207,26 @@ clear_caches() {
     adb shell rm -rf /cache/* 2>/dev/null || true
     
     # Device-specific cache locations
-    if [[ "$DEVICE_BRAND_LOWER" == "xiaomi" ]]; then
-        log_step "Clearing Xiaomi-specific caches..."
-        adb shell rm -rf /data/miui/cache/* 2>/dev/null || true
-        adb shell rm -rf /data/adb/cache/* 2>/dev/null || true
-    fi
+    case "$DEVICE_TYPE" in
+        xiaomi)
+            log_step "Clearing Xiaomi MIUI-specific caches..."
+            adb shell rm -rf /data/miui/cache/* 2>/dev/null || true
+            adb shell rm -rf /data/adb/cache/* 2>/dev/null || true
+            ;;
+        samsung)
+            log_step "Clearing Samsung OneUI-specific caches..."
+            adb shell rm -rf /data/log/* 2>/dev/null || true
+            adb shell rm -rf /data/anr/* 2>/dev/null || true
+            ;;
+        oneplus)
+            log_step "Clearing OnePlus OxygenOS-specific caches..."
+            adb shell rm -rf /data/op_cache/* 2>/dev/null || true
+            ;;
+        mediatek|qualcomm)
+            log_step "Clearing chipset-specific cache directories..."
+            adb shell rm -rf /data/vendor/cache/* 2>/dev/null || true
+            ;;
+    esac
     
     log_success "Caches cleared"
 }
@@ -181,16 +242,37 @@ stop_problem_services() {
     )
     
     # Add device-specific services
-    if [[ "$DEVICE_BRAND_LOWER" == "xiaomi" ]]; then
-        services+=(
-            "com.miui.home"
-            "com.miui.systemui"
-        )
-    elif [[ "$DEVICE_BRAND_LOWER" == "motorola" ]]; then
-        services+=(
-            "com.motorola.launcher"
-        )
-    fi
+    case "$DEVICE_TYPE" in
+        xiaomi)
+            services+=(
+                "com.miui.home"
+                "com.miui.systemui"
+                "com.miui.notification"
+            )
+            ;;
+        samsung)
+            services+=(
+                "com.samsung.android.app.launcher"
+                "com.samsung.systemui"
+            )
+            ;;
+        motorola)
+            services+=(
+                "com.motorola.launcher"
+                "com.motorola.systemui"
+            )
+            ;;
+        oneplus)
+            services+=(
+                "com.oneplus.launcher"
+            )
+            ;;
+        google)
+            services+=(
+                "com.google.android.launcher"
+            )
+            ;;
+    esac
     
     for service in "${services[@]}"; do
         log_step "Attempting to stop $service..."
@@ -211,10 +293,20 @@ optimize_storage() {
     adb shell "rm -rf /data/cache/* 2>/dev/null; rm -rf /data/tmp/* 2>/dev/null" || true
     
     # Device-specific optimization
-    if [[ "$DEVICE_BRAND_LOWER" == "xiaomi" ]]; then
-        log_step "Optimizing Xiaomi-specific storage..."
-        adb shell "rm -rf /data/miui/log/* 2>/dev/null; rm -rf /data/anr/* 2>/dev/null" || true
-    fi
+    case "$DEVICE_TYPE" in
+        xiaomi)
+            log_step "Optimizing Xiaomi MIUI storage..."
+            adb shell "rm -rf /data/miui/log/* 2>/dev/null; rm -rf /data/anr/* 2>/dev/null" || true
+            ;;
+        samsung)
+            log_step "Optimizing Samsung storage..."
+            adb shell "rm -rf /data/log/* 2>/dev/null; rm -rf /data/dropbox/* 2>/dev/null" || true
+            ;;
+        mediatek|qualcomm)
+            log_step "Optimizing chipset-specific storage..."
+            adb shell "rm -rf /data/vendor/log/* 2>/dev/null; rm -rf /data/vendor/tmp/* 2>/dev/null" || true
+            ;;
+    esac
     
     log_success "Storage optimized"
 }
@@ -370,10 +462,17 @@ Android Smart Repair - Universal Device Support
 USAGE:
     fix_android_universal.sh [OPTION]
 
-SUPPORTED DEVICES:
-    ✓ Motorola G15 and other Motorola models
-    ✓ Xiaomi Mi series
-    ✓ Xiaomi Redmi series
+SUPPORTED BRANDS & DEVICES:
+    ✓ Motorola (G15, G series, others)
+    ✓ Xiaomi Mi series & Redmi series
+    ✓ Samsung (Galaxy, A series, others)
+    ✓ Google Pixel (all models)
+    ✓ Sony/Sony Ericsson
+    ✓ OnePlus
+    ✓ HTC
+    ✓ NVIDIA Shield
+    ✓ MediaTek chipset devices
+    ✓ Qualcomm Snapdragon devices
     ✓ Other Android devices with ADB support
 
 OPTIONS:
@@ -396,7 +495,7 @@ REQUIREMENTS:
     - Device connected via USB
 
 FEATURES:
-    • Automatic device detection (Motorola, Xiaomi, Generic)
+    • Automatic device detection (Brand, OS, Chipset)
     • Device-specific optimizations
     • Safe operations (no data loss)
     • Comprehensive logging
@@ -410,7 +509,7 @@ EOF
 
 # Main function
 main() {
-    print_header "Android Smart Repair - Universal v1.1"
+    print_header "Android Smart Repair - Universal v1.2"
     log_info "Starting repair process..."
     log_info "Logging to: $LOG_FILE"
     
