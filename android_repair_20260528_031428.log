@@ -1,0 +1,40 @@
+
+[0;34m╔════════════════════════════════════════════════════════╗[0m
+[0;34m║[0m Android Smart Repair v1.0
+[0;34m╚════════════════════════════════════════════════════════╝[0m
+
+[0;34m[INFO][0m Starting repair process...
+[0;34m[INFO][0m Logging to: android_repair_20260528_031428.log
+
+[0;34m╔════════════════════════════════════════════════════════╗[0m
+[0;34m║[0m Checking Prerequisites
+[0;34m╚════════════════════════════════════════════════════════╝[0m
+
+[0;34m[INFO][0m Checking for ADB...
+[0;32m[SUCCESS][0m ADB found: Android Debug Bridge version 1.0.41
+[0;34m[INFO][0m Checking for Fastboot...
+[0;32m[SUCCESS][0m Fastboot found: fastboot version 34.0.5-debian
+
+[0;34m╔════════════════════════════════════════════════════════╗[0m
+[0;34m║[0m Android Smart Repair - Interactive Menu
+[0;34m╚════════════════════════════════════════════════════════╝[0m
+
+
+[0;34m╔════════════════════════════════════════════════════════╗[0m
+[0;34m║[0m Booting into Bootloader Mode
+[0;34m╚════════════════════════════════════════════════════════╝[0m
+
+
+[0;34m╔════════════════════════════════════════════════════════╗[0m
+[0;34m║[0m Checking Device Connection
+[0;34m╚════════════════════════════════════════════════════════╝[0m
+
+[0;34m[INFO][0m Starting ADB daemon...
+[0;34m[INFO][0m Waiting for device...
+
+[0;32m[SUCCESS][0m Device detected!
+[0;34m[INFO][0m Device information:
+adb: no devices/emulators found
+[1;33m[WARNING][0m Device will boot into bootloader mode
+[0;34m[INFO][0m This is an advanced option for flashing firmware.
+[0;34m[INFO][0m Booting into bootloader...

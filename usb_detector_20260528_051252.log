@@ -1,0 +1,27 @@
+
+[0;36m╔════════════════════════════════════════════════════════╗[0m
+[0;36m║[0m Android USB Device Mode Detector
+[0;36m╚════════════════════════════════════════════════════════╝[0m
+[0;34m[INFO][0m Operating System: linux
+[0;34m[INFO][0m ═══ PHASE 1: USB Hardware Detection ═══
+
+[0;36m╔════════════════════════════════════════════════════════╗[0m
+[0;36m║[0m Scanning USB Devices (Linux)
+[0;36m╚════════════════════════════════════════════════════════╝[0m
+[0;34m[INFO][0m Running: lsusb
+[0;32m[✓][0m Found device in fastboot mode (USB 001:067)
+[0;34m[INFO][0m Vendor ID: 18d1 | Product ID: d00d
+[0;34m[INFO][0m 
+[0;34m[INFO][0m ═══ PHASE 2: Protocol Fuzzing/Probing ═══
+
+[0;36m╔════════════════════════════════════════════════════════╗[0m
+[0;36m║[0m Detection Summary
+[0;36m╚════════════════════════════════════════════════════════╝[0m
+[0;32m[✓][0m Device Mode: fastboot
+[0;34m[INFO][0m Vendor ID: 18d1
+[0;34m[INFO][0m Product ID: d00d
+[0;34m[INFO][0m ═══ RECOMMENDATIONS ═══
+[0;34m[INFO][0m Device in FASTBOOT mode
+[0;34m[INFO][0m → Use: fastboot flash/erase commands
+[0;34m[INFO][0m → Next: fastboot reboot OR fastboot boot recovery.img
+[0;34m[INFO][0m Full log saved to: usb_detector_20260528_051252.log

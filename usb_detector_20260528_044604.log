@@ -1,0 +1,58 @@
+
+[0;36m╔════════════════════════════════════════════════════════╗[0m
+[0;36m║[0m Android USB Device Mode Detector
+[0;36m╚════════════════════════════════════════════════════════╝[0m
+[0;34m[INFO][0m Operating System: linux
+[0;34m[INFO][0m ═══ PHASE 1: USB Hardware Detection ═══
+
+[0;36m╔════════════════════════════════════════════════════════╗[0m
+[0;36m║[0m Scanning USB Devices (Linux)
+[0;36m╚════════════════════════════════════════════════════════╝[0m
+[0;34m[INFO][0m Running: lsusb
+[1;33m[!][0m No known bootloader mode detected via USB IDs
+[0;34m[INFO][0m 
+[0;34m[INFO][0m ═══ PHASE 2: Protocol Fuzzing/Probing ═══
+[0;34m[INFO][0m No mode detected from USB IDs. Fuzzing protocols...
+
+[0;36m╔════════════════════════════════════════════════════════╗[0m
+[0;36m║[0m Probing Fastboot Protocol
+[0;36m╚════════════════════════════════════════════════════════╝[0m
+[0;34m[INFO][0m Attempting: fastboot devices
+[0;35m[DEBUG][0m No fastboot devices detected
+
+[0;36m╔════════════════════════════════════════════════════════╗[0m
+[0;36m║[0m Probing ADB Protocol
+[0;36m╚════════════════════════════════════════════════════════╝[0m
+[0;34m[INFO][0m Starting ADB daemon...
+[0;34m[INFO][0m Attempting: adb devices
+[0;35m[DEBUG][0m No ADB devices detected
+
+[0;36m╔════════════════════════════════════════════════════════╗[0m
+[0;36m║[0m Probing MTP Protocol
+[0;36m╚════════════════════════════════════════════════════════╝[0m
+[1;33m[!][0m MTP tools not found (libmtp-devices or mtp-probe)
+[0;34m[INFO][0m Install: sudo apt-get install libmtp-tools
+
+[0;36m╔════════════════════════════════════════════════════════╗[0m
+[0;36m║[0m Probing FDL/MediaTek BROM Protocol
+[0;36m╚════════════════════════════════════════════════════════╝[0m
+[0;34m[INFO][0m Checking for MediaTek FDL devices via USB...
+[0;35m[DEBUG][0m No FDL/BROM devices detected
+
+[0;36m╔════════════════════════════════════════════════════════╗[0m
+[0;36m║[0m Probing EDL/Firehose Protocol (Qualcomm)
+[0;36m╚════════════════════════════════════════════════════════╝[0m
+[0;34m[INFO][0m Checking for Qualcomm EDL devices via USB...
+[0;35m[DEBUG][0m No EDL/Firehose devices detected
+
+[0;36m╔════════════════════════════════════════════════════════╗[0m
+[0;36m║[0m Detection Summary
+[0;36m╚════════════════════════════════════════════════════════╝[0m
+[0;31m[ERROR][0m No device mode detected
+[0;34m[INFO][0m Troubleshooting:
+[0;34m[INFO][0m 1. Ensure device is connected via USB
+[0;34m[INFO][0m 2. Check USB cable and port
+[0;34m[INFO][0m 3. Enable USB Debugging if in Android OS
+[0;34m[INFO][0m 4. Try different USB port or cable
+[0;34m[INFO][0m 5. Check logs: cat usb_detector_20260528_044604.log
+[0;34m[INFO][0m Full log saved to: usb_detector_20260528_044604.log

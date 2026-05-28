@@ -1,0 +1,26 @@
+
+[0;36m╔════════════════════════════════════════════════════════╗[0m
+[0;36m║[0m Android USB Device Mode Detector
+[0;36m╚════════════════════════════════════════════════════════╝[0m
+[0;34m[INFO][0m Operating System: linux
+[0;34m[INFO][0m ═══ PHASE 1: USB Hardware Detection ═══
+
+[0;36m╔════════════════════════════════════════════════════════╗[0m
+[0;36m║[0m Scanning USB Devices (Linux)
+[0;36m╚════════════════════════════════════════════════════════╝[0m
+[0;34m[INFO][0m Running: lsusb
+[1;33m[!][0m No known bootloader mode detected via USB IDs
+[0;34m[INFO][0m 
+[0;34m[INFO][0m ═══ PHASE 2: Protocol Fuzzing/Probing ═══
+[0;34m[INFO][0m No mode detected from USB IDs. Fuzzing protocols...
+
+[0;36m╔════════════════════════════════════════════════════════╗[0m
+[0;36m║[0m Probing Fastboot Protocol
+[0;36m╚════════════════════════════════════════════════════════╝[0m
+[0;34m[INFO][0m Attempting: fastboot devices
+[0;35m[DEBUG][0m No fastboot devices detected
+
+[0;36m╔════════════════════════════════════════════════════════╗[0m
+[0;36m║[0m Probing ADB Protocol
+[0;36m╚════════════════════════════════════════════════════════╝[0m
+[0;34m[INFO][0m Starting ADB daemon...
